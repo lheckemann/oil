@@ -99,3 +99,10 @@ f
 # stdout-json: "['a', 'b']\n['c', 'd']\n['e', 'f']\n"
 # N-I mksh stdout-json: ""
 # N-I mksh status: 1
+
+### Append used like env prefix
+# This should be an error but it's not.
+A=a
+A+=a printenv.py A
+# BUG bash stdout: aa
+# BUG mksh stdout: a
