@@ -374,6 +374,18 @@ def LooksLikeAssignment(w):
   """Tests whether a word looke like FOO=bar.
 
   If so, return a (string, CompoundWord) pair.  Otherwise, return False.
+
+  s=1
+  s+=1
+  s[x]=1
+  s[x]+=1
+
+  a=()
+  a+=()
+  a[x]=()
+  a[x]+=()  # Not valid because arrays can't be nested.
+
+  NOTE: a[ and s[ might be parsed separately?
   """
   assert w.tag == word_e.CompoundWord
   if len(w.parts) == 0:
