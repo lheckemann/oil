@@ -23,6 +23,7 @@ from osh.bool_parse import BoolParser
 
 log = util.log
 command_e = ast.command_e
+assign_op = ast.assign_op
 
 
 def _UnfilledHereDocs(redirects):
@@ -386,15 +387,18 @@ class CommandParser(object):
 
       left_spid = word.LeftMostSpanForWord(w)
 
-      kv = word.LooksLikeAssignment(w)
-      if kv:
-        k, v = kv
+      kov = word.LooksLikeAssignment(w)
+      if kov:
+        k, op, v = kov
+        if op != assign_op.Equal:  # 'FOO+=bar echo hi' is illgeal.
+          self.AddErrorContext("Expected = in command prefix", word=w)
+          return None
         t = word.TildeDetect(v)
         if t:
           # t is an unevaluated word with TildeSubPart
-          prefix_bindings.append((k, t, left_spid))
+          prefix_bindings.append((k, op, t, left_spid))
         else:
-          prefix_bindings.append((k, v, left_spid))  # v is unevaluated word
+          prefix_bindings.append((k, op, v, left_spid))  # v is unevaluated word
       else:
         done_prefix = True
         suffix_words.append(w)
@@ -403,7 +407,7 @@ class CommandParser(object):
 
   def _MakeSimpleCommand(self, prefix_bindings, suffix_words, redirects):
     # FOO=(1 2 3) ls is not allowed
-    for k, v, _ in prefix_bindings:
+    for k, _, v, _ in prefix_bindings:
       if word.HasArrayPart(v):
         self.AddErrorContext(
             'Unexpected array literal in binding: %s', v, word=v)
@@ -413,9 +417,9 @@ class CommandParser(object):
     # NOTE: Other checks can be inserted here.  Can resolve builtins,
     # functions, aliases, static PATH, etc.
     for w in suffix_words:
-      kv = word.LooksLikeAssignment(w)
-      if kv:
-        k, v = kv
+      kov = word.LooksLikeAssignment(w)
+      if kov:
+        k, _, v = kov
         if word.HasArrayPart(v):
           self.AddErrorContext('Unexpected array literal: %s', v, word=v)
           return None
@@ -432,7 +436,7 @@ class CommandParser(object):
     node = ast.SimpleCommand()
     node.words = words3
     node.redirects = redirects
-    for name, val, left_spid in prefix_bindings:
+    for name, _, val, left_spid in prefix_bindings:
       pair = ast.env_pair(name, val)
       pair.spids.append(left_spid)
       node.more_env.append(pair)
@@ -461,15 +465,15 @@ class CommandParser(object):
     while i < n:
       w = suffix_words[i]
       left_spid = word.LeftMostSpanForWord(w)
-      kv = word.LooksLikeAssignment(w)
-      if kv:
-        k, v = kv
+      kov = word.LooksLikeAssignment(w)
+      if kov:
+        k, op, v = kov
         t = word.TildeDetect(v)
         if t:
           # t is an unevaluated word with TildeSubPart
-          pair = (k, t, left_spid)
+          pair = (k, op, t, left_spid)
         else:
-          pair = (k, v, left_spid)  # v is unevaluated word
+          pair = (k, op, v, left_spid)  # v is unevaluated word
       else:
         # In aboriginal in variables/sources: export_if_blank does export "$1".
         # We should allow that.
@@ -494,8 +498,8 @@ class CommandParser(object):
 
     # TODO: Also make with LhsIndexedName
     pairs = []
-    for lhs, rhs, spid in bindings:
-      p = ast.assign_pair(ast.LhsName(lhs), rhs)
+    for lhs, op, rhs, spid in bindings:
+      p = ast.assign_pair(ast.LhsName(lhs), op, rhs)
       p.spids.append(spid)
       pairs.append(p)
 
@@ -589,8 +593,8 @@ class CommandParser(object):
         util.warn('WARNING: Got redirects in assignment: %s', redirects)
 
       pairs = []
-      for lhs, rhs, spid in prefix_bindings:
-        p = ast.assign_pair(ast.LhsName(lhs), rhs)
+      for lhs, op, rhs, spid in prefix_bindings:
+        p = ast.assign_pair(ast.LhsName(lhs), op, rhs)
         p.spids.append(spid)
         pairs.append(p)
 
@@ -1275,8 +1279,8 @@ class CommandParser(object):
 
     if self.c_kind == Kind.Word:
       if self.w_parser.LookAhead() == Id.Op_LParen:  # (
-        kv = word.LooksLikeAssignment(self.cur_word)
-        if kv:
+        kov = word.LooksLikeAssignment(self.cur_word)
+        if kov:
           return self.ParseSimpleCommand()  # f=(a b c)  # array
         else:
           return self.ParseFunctionDef()  # f() { echo; }  # function

@@ -9,6 +9,7 @@ from core.id_kind import Id, Kind, LookupKind
 
 word_e = ast.word_e
 word_part_e = ast.word_part_e
+assign_op = ast.assign_op
 
 
 def _LiteralPartId(p):
@@ -409,7 +410,8 @@ def LooksLikeAssignment(w):
     for p in w.parts[1:]:
       rhs.parts.append(p)
 
-  return name, rhs
+  op = assign_op.Equal
+  return name, op, rhs
 
 
 # TODO:
