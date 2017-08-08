@@ -76,12 +76,16 @@ f() {
   export d+=d
   echo $d
 
+  # Not declared anywhere
+  e[1]+=e
+  echo ${e[1]}
+
   # Declare is the same, but mksh doesn't support it
   #declare e+=e
   #echo $e
 }
 f
-# stdout-json: "a\nb\nc\nd\n"
+# stdout-json: "a\nb\nc\nd\ne\n"
 
 ### Append to nonexistent array
 f() {
