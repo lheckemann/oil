@@ -371,9 +371,11 @@ def AsArithVarName(w):
 
 
 def LooksLikeAssignment(w):
-  """Tests whether a word looke like FOO=bar.
+  """Tests whether a word looks like FOO=bar.
 
-  If so, return a (string, CompoundWord) pair.  Otherwise, return False.
+  Returns:
+    (string, CompoundWord) if it looks like FOO=bar
+    False                  if it doesn't
 
   s=1
   s+=1
@@ -408,6 +410,25 @@ def LooksLikeAssignment(w):
       rhs.parts.append(p)
 
   return name, rhs
+
+
+# TODO:
+# - local/declare should use this.
+# - Doesn't work with 'readonly' or 'export'
+# - global is parsed at the top level with LhsIndexedLike.
+def LooksLikeLhsIndex(s):
+  """Tests if a STRING looks like a[x + 1]=b
+
+  # After EvalStatic, do another around of lexing at runtime.
+  # Use osh/lex.py.
+
+  Returns:
+    (string, arith_expr) if it looks like a[x + 1]=b
+    LhsIndexedName?
+
+    False                  if it doesn't
+  """
+  # PROBLEM: What arena tokens to use?
 
 
 def KeywordToken(w):
